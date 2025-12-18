@@ -9,7 +9,11 @@ This is an adaptation of a sample Kubernetes docs learning example ([fine parall
 
 ## ℹ️ Overview
 
-Please refer to [Prime Jobs] for the specific blog and the relevant repo(s). 
+Please refer to [Prime Jobs] for the specific blog and the relevant repo(s). If you don't have time TL;DR:
+
+This is not an effective way to find natural numbers $n$ that satisfy $\pi(n^2)-\pi(n^2-n) = \pi(n^2+n)-\pi(n^2)$ where $\pi(x)$ is the number of prime numbers smaller than or equal to x (as discussed in the blog, called them `magic Oppermann` numbers). Instead it is a practice to use it as an interesting workload in working with the Kubernetes [fine parallel processing work queue] example along with some dabbling in the use of kustomize.
+
+More effective ways could be Jupyter notebooks, Python scripts or SageMath scripts. heck, we could even pass search starting point and search count in the Job definition. However, in that case, the distributed processing tasks would have been significantly lesser in count and boring. Anyway, it was a (personal) choice.
 
 ### ✍️ Authors
 
@@ -146,9 +150,8 @@ mkdir -p $OVERLAYS/demo
 curl -s -o "$OVERLAYS/demo/#1" "$CONTENT/overlays/demo\
 /{kustomization.yaml,prime-job-patch.yaml,sagemath-endpointslice-patch.yaml,sagemath-service-patch.yaml,prime-job-demo.env}"
 ```
-Adjust the parameters as you need. Set `namePrefix` and `namespace` for all resources and `prime-job` `image` in `kustomization.yaml`:
+Adjust the parameters as you need. Set `namespace` for all resources and `prime-job` `image` in `kustomization.yaml`:
 ```yaml
-namePrefix: demo-
 namespace: demo
 
 images:
@@ -166,20 +169,20 @@ spec:
 Change the `spec.externalIPs` in the `sagemath-service-patch.yaml` based on the IP address for the `sagemath-backend-service`: 
 ```yaml
   externalIPs:
-  - 192.168.1.17
+  - 192.168.1.200
 ```
 Use the same value for the `endpoints.addresses` in the `sagemath-endpointslice-patch.yaml`: 
 ```yaml
 endpoints:
 - addresses:
-  - "192.168.1.17"
+  - "192.168.1.200"
 ```
 Delete and previous values in the resources and create the new resource files.
 ```bash
 rm $RESOURCES/*
 kustomize build $OVERLAYS/demo -o $RESOURCES
 ```
-Inspect the values. If you are satisfied, follow the same base recipe for deployment and execution.
+Inspect the values. If you are satisfied, follow the same base recipe for deployment and execution (in the `kubectl wait` command, do not forget to include the namespace) after you create the `demo` namespace.
 ## 💭 Feedback and Contributing
 
 As described in [Prime Jobs], so far the largest magic Oppermann number found using this method is 1000132. Once you find a larger number please share it in Discussions.
