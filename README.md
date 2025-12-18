@@ -19,8 +19,11 @@ All repos shared in [CurioCopia] are shared under Creative Commons license for o
 
 1. Generate your own Docker image for [oppermann-worker], place it in your favorite registry.
 2. Generate your own Docker image for [sagemath-backend-service]. Instantiate it in a compute accessible from the Kubernetes cluster where `prime-job` will be running.
-3. Clone this repo, adjust the essential parameters in [demo], run kustomize and deploy.
-4. Collect the logs of the Pods created for the Job execution.
+3. Clone this repo, adjust the essential parameters in [demo], run kustomize and generate resource files.
+4. Create the Redis Pod and Service as well as headless Sagemath Service and EndpointSlices.
+5. Once the Redis Service is available, run the `mo-fill-job` to store the numbers to be processed.
+6. Run the `prime-job` to process the numbers placed in the Redis queue.
+7. Collect the logs of the Pods created for the Job execution.
 ```shell-session
 kubectl get po
 NAME                READY   STATUS      RESTARTS       AGE
@@ -66,16 +69,69 @@ tree $DEMO_HOME
 ```
 Expect something like:
 ```bash
-/tmp/tmp.IyYQQlHaJP
+/tmp/tmp.OdCWAqtRU4
 └── base
     ├── externalsagemath-endpointslice.yaml
     ├── externalsagemath-service.yaml
     ├── kustomization.yaml
     ├── mo-fill-job.yaml
     ├── prime-job.env
-    ├── prime-job-yaml
-    ├── redis-pod.yaml     
+    ├── prime-job.yaml
+    ├── redis-pod.yaml
     └── redis-service.yaml
+```
+### The Base Customization
+
+The base directory has a kustomization file:
+```bash
+more $BASE/kustomization.yaml
+```
+You can run kustomize on the base to emit customized resources to stdout and inspect:
+```bash
+kustomize build $BASE
+```
+More conveniently you can generate the kustomize output and split the resources into their own files and then execute them in the preferred order.
+```bash
+RESOURCES=$DEMO_HOME/resources
+mkdir -p $RESOURCES
+
+kustomize build $BASE -o $RESOURCES
+
+tree $DEMO_HOME
+/tmp/tmp.OdCWAqtRU4
+├── base
+│   ├── externalsagemath-endpointslice.yaml
+│   ├── externalsagemath-service.yaml
+│   ├── kustomization.yaml
+│   ├── mo-fill-job.yaml
+│   ├── prime-job.env
+│   ├── prime-job.yaml
+│   ├── redis-pod.yaml
+│   └── redis-service.yaml
+└── resources
+    ├── batch_v1_job_mo-fill-job.yaml
+    ├── batch_v1_job_prime-job.yaml
+    ├── discovery.k8s.io_v1_endpointslice_sagemath-service-endpointslice.yaml
+    ├── v1_configmap_prime-job-environment-vars-hf52cf99mh.yaml
+    ├── v1_pod_redis-master.yaml
+    ├── v1_service_redis.yaml
+    └── v1_service_sagemath-service.yaml
+```
+Follow the recipe below (adjust for your own exact filenames) for ConfigMap, Redis Pod and Service and headless SageMath Service and EndPointSlice:
+```bash
+cd $RESOURCES
+
+kubectl create -f v1_configmap_prime-job-environment-vars-hf52cf99mh.yaml
+kubectl create -f v1_pod_redis-master.yaml
+kubectl create -f v1_service_redis.yaml
+kubectl create -f v1_service_sagemath-service.yaml
+kubectl create -f discovery.k8s.io_v1_endpointslice_sagemath-service-endpointslice.yaml
+```
+Once the resources are running, follow the recipe below for filling the Redis queue and processing it.
+```bash
+kubectl apply -f batch_v1_job_mo-fill-job.yaml
+kubectl wait --for=condition=complete job/mo-fill-job --timeout=60s
+kubectl apply -f batch_v1_job_prime-job.yaml
 ```
 
 ## 💭 Feedback and Contributing
