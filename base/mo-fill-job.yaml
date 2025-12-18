@@ -11,7 +11,7 @@ spec:
       - command:
         - /bin/sh
         - -c
-        - "for i in `seq $((MO_START)) $((MO_START+MO_COUNT))`; do redis-cli -h redis lpush $REDIS_QUEUE $i; done"
+        - "for i in `seq $((MO_START)) $((MO_START+MO_COUNT))`; do redis-cli -h $REDIS_SERVICE lpush $REDIS_QUEUE $i; done"
         image: redis
         name: redis-cli
         env:
@@ -30,6 +30,11 @@ spec:
             configMapKeyRef:
               name: prime-job-environment-vars
               key: REDIS_QUEUE
+        - name: REDIS_SERVICE
+          valueFrom:
+            configMapKeyRef:
+              name: prime-job-environment-vars
+              key: REDIS_SERVICE
         resources: {}
       dnsPolicy: ClusterFirst
       restartPolicy: Never

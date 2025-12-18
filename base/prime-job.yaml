@@ -27,4 +27,9 @@ spec:
               configMapKeyRef:
                 name: prime-job-environment-vars
                 key: REDIS_QUEUE
+          - name: REDIS_SERVICE
+            valueFrom:
+              configMapKeyRef:
+                name: prime-job-environment-vars
+                key: REDIS_SERVICE
       restartPolicy: Never
