@@ -27,8 +27,8 @@ All repos shared in [CurioCopia] are shared under Creative Commons license for o
 ```shell-session
 kubectl get po
 NAME                READY   STATUS      RESTARTS       AGE
-prime-job-qsgs9      0/1     Completed   0              79s
-prime-job-z6gmq      0/1     Completed   0              79s
+prime-job-qsgs9     0/1     Completed   0              79s
+prime-job-z6gmq     0/1     Completed   0              79s
 mo-fill-job-b6k94   0/1     Completed   0              2m20s
 redis-master        1/1     Running     0              4d20h
 temp                1/1     Running     1 (3h5m ago)   3h20m
@@ -50,22 +50,22 @@ Let's follow the typical Kustomize installation process.
 
 Define a place to work:
 ```bash
-DEMO_HOME=$(mktemp -d)
+TEST_HOME=$(mktemp -d)
 ```
 ### Establish the Base
 
 ```bash
-BASE=$DEMO_HOME/base
+BASE=$TEST_HOME/base
 mkdir -p $BASE
 
 CONTENT="https://raw.githubusercontent.com/curiocopia/blog-prime-jobs"
 
 curl -s -o "$BASE/#1" "$CONTENT/base\
-/{externalsagemath-endpointslice.yaml,externalsagemath-service.yaml,kustomization.yaml, mo-fill-job.yaml,prime-job-yaml,redis-pod.yaml,redis-service.yaml,prime-job.env}"
+/{externalsagemath-endpointslice.yaml,externalsagemath-service.yaml,kustomization.yaml,mo-fill-job.yaml,prime-job.yaml,redis-pod.yaml,redis-service.yaml,prime-job.env}"
 ```
 Look at the directory:
 ```bash
-tree $DEMO_HOME
+tree $TEST_HOME
 ```
 Expect something like:
 ```bash
@@ -92,12 +92,12 @@ kustomize build $BASE
 ```
 More conveniently you can generate the kustomize output and split the resources into their own files and then execute them in the preferred order.
 ```bash
-RESOURCES=$DEMO_HOME/resources
+RESOURCES=$TEST_HOME/resources
 mkdir -p $RESOURCES
 
 kustomize build $BASE -o $RESOURCES
 
-tree $DEMO_HOME
+tree $TEST_HOME
 /tmp/tmp.OdCWAqtRU4
 ├── base
 │   ├── externalsagemath-endpointslice.yaml
@@ -121,11 +121,11 @@ Follow the recipe below (adjust for your own exact filenames) for ConfigMap, Red
 ```bash
 cd $RESOURCES
 
-kubectl create -f v1_configmap_prime-job-environment-vars-hf52cf99mh.yaml
-kubectl create -f v1_pod_redis-master.yaml
-kubectl create -f v1_service_redis.yaml
-kubectl create -f v1_service_sagemath-service.yaml
-kubectl create -f discovery.k8s.io_v1_endpointslice_sagemath-service-endpointslice.yaml
+kubectl apply -f v1_configmap_prime-job-environment-vars-hf52cf99mh.yaml
+kubectl apply -f v1_pod_redis-master.yaml
+kubectl apply -f v1_service_redis.yaml
+kubectl apply -f v1_service_sagemath-service.yaml
+kubectl apply -f discovery.k8s.io_v1_endpointslice_sagemath-service-endpointslice.yaml
 ```
 Once the resources are running, follow the recipe below for filling the Redis queue and processing it.
 ```bash
@@ -133,10 +133,56 @@ kubectl apply -f batch_v1_job_mo-fill-job.yaml
 kubectl wait --for=condition=complete job/mo-fill-job --timeout=60s
 kubectl apply -f batch_v1_job_prime-job.yaml
 ```
+## Create Overlay
 
+Create a `demo` overlay.
+```bash
+OVERLAYS=$TEST_HOME/overlays
+mkdir -p $OVERLAYS/demo
+```
+## Demo Customization
+
+```bash
+curl -s -o "$OVERLAYS/demo/#1" "$CONTENT/overlays/demo\
+/{kustomization.yaml,prime-job-patch.yaml,sagemath-endpointslice-patch.yaml,sagemath-service-patch.yaml,prime-job-demo.env}"
+```
+Adjust the parameters as you need. Set `namePrefix` and `namespace` for all resources and `prime-job` `image` in `kustomization.yaml`:
+```yaml
+namePrefix: demo-
+namespace: demo
+
+images:
+- name: oppermann-worker
+  newName: my-registry/oppermann-worker
+  newTag: v1
+```
+Adjust `prime-job-demo.env` values for ConfigMap creation to use in various reources.
+
+Change `spec.parallelism` value per your resources in the cluster.
+```yaml
+spec:
+  parallelism: 10 # The new value that you can change.
+```
+Change the `spec.externalIPs` in the `sagemath-service-patch.yaml` based on the IP address for the `sagemath-backend-service`: 
+```yaml
+  externalIPs:
+  - 192.168.1.17
+```
+Use the same value for the `endpoints.addresses` in the `sagemath-endpointslice-patch.yaml`: 
+```yaml
+endpoints:
+- addresses:
+  - "192.168.1.17"
+```
+Delete and previous values in the resources and create the new resource files.
+```bash
+rm $RESOURCES/*
+kustomize build $OVERLAYS/demo -o $RESOURCES
+```
+Inspect the values. If you are satisfied, follow the same base recipe for deployment and execution.
 ## 💭 Feedback and Contributing
 
-As desribed in [Prime Jobs], so far the largest magic Oppermann number found is 1000132. Once you find a larger number please share it in Discussions.
+As described in [Prime Jobs], so far the largest magic Oppermann number found using this method is 1000132. Once you find a larger number please share it in Discussions.
 
 If you have any other suggestions for improvements or corrections, please drop a note in Discussions.
 
