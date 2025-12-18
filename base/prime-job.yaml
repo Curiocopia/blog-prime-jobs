@@ -1,0 +1,30 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: prime-job
+spec:
+  parallelism: 2
+  template:
+    metadata:
+      name: prime-job
+    spec:
+      containers:
+      - name: oppermann-worker
+        image: oppermann-worker
+        env:
+          - name: SAGEMATH_API_HOST
+            valueFrom:
+              configMapKeyRef:
+                name: prime-job-environment-vars
+                key: SAGEMATH_API_HOST
+          - name: SAGEMATH_API_PORT
+            valueFrom:
+              configMapKeyRef:
+                name: prime-job-environment-vars
+                key: SAGEMATH_API_PORT
+          - name: REDIS_QUEUE
+            valueFrom:
+              configMapKeyRef:
+                name: prime-job-environment-vars
+                key: REDIS_QUEUE
+      restartPolicy: Never

@@ -1,0 +1,7 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: prime-job
+spec:
+  parallelism: 10 # The new value that you can change.
+

@@ -1,0 +1,32 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namePrefix: demo-
+namespace: demo
+
+images:
+- name: oppermann-worker
+  newName: my-registry/oppermann-worker
+  newTag: v1
+
+resources:
+- ../../base
+
+configMapGenerator:
+- name: prime-job-environment-vars
+  behavior: replace
+  env: prime-job-demo.env
+
+patches:
+- path: prime-job-patch.yaml
+  target:
+    kind: Job
+    name: prime-job
+- path: sagemath-service-patch.yaml    
+  target:
+    kind: Service
+    name: sagemath-service
+- path: sagemath-endpointslice-patch.yaml
+  target:
+    kind: EndpointSlice
+    name: sagemath-service-endpointslice      

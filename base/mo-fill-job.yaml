@@ -1,0 +1,35 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mo-fill-job
+spec:
+  template:
+    metadata:
+      name: mo-fill-job
+    spec:
+      containers:
+      - command:
+        - /bin/sh
+        - -c
+        - "for i in `seq $((MO_START)) $((MO_START+MO_COUNT))`; do redis-cli -h redis lpush $REDIS_QUEUE $i; done"
+        image: redis
+        name: redis-cli
+        env:
+        - name: MO_START
+          valueFrom:
+            configMapKeyRef:
+              name: prime-job-environment-vars
+              key: MO_START
+        - name: MO_COUNT
+          valueFrom:
+            configMapKeyRef:
+              name: prime-job-environment-vars
+              key: MO_COUNT
+        - name: REDIS_QUEUE
+          valueFrom:
+            configMapKeyRef:
+              name: prime-job-environment-vars
+              key: REDIS_QUEUE
+        resources: {}
+      dnsPolicy: ClusterFirst
+      restartPolicy: Never

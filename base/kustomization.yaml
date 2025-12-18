@@ -1,0 +1,54 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+metadata:
+  name: prime-jobs
+
+configMapGenerator:
+- name: prime-job-environment-vars
+  env: prime-job.env
+
+labels:
+  - pairs:
+      app: blog-prime-jobs
+    includeSelectors: true
+
+resources:
+- redis-pod.yaml
+- redis-service.yaml
+- externalsagemath-service.yaml
+- externalsagemath-endpointslice.yaml
+- mo-fill-job.yaml
+- prime-job.yaml
+
+patches:
+  - patch: |-
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: sagemath-service
+      spec:
+        ports:
+          - name: http
+            protocol: TCP
+            port: 8000
+            targetPort: 8000
+        externalIPs:
+          - 192.168.1.100
+    target:
+      kind: Service
+      name: sagemath-service
+  - patch: |-
+      apiVersion: discovery.k8s.io/v1
+      kind: EndpointSlice
+      metadata:
+        name: sagemath-service-endpointslice
+        labels:
+          kubernetes.io/service-name: sagemath-service
+      addressType: IPv4
+      ports:
+        - name: http
+          protocol: TCP
+          port: 8000
+      endpoints:
+        - addresses:
+            - "192.168.1.100"
