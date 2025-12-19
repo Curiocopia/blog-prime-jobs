@@ -62,7 +62,7 @@ TEST_HOME=$(mktemp -d)
 BASE=$TEST_HOME/base
 mkdir -p $BASE
 
-CONTENT="https://raw.githubusercontent.com/curiocopia/blog-prime-jobs"
+CONTENT="https://raw.githubusercontent.com/Curiocopia/blog-prime-jobs/refs/heads/main"
 
 curl -s -o "$BASE/#1" "$CONTENT/base\
 /{externalsagemath-endpointslice.yaml,externalsagemath-service.yaml,kustomization.yaml,mo-fill-job.yaml,prime-job.yaml,redis-pod.yaml,redis-service.yaml,prime-job.env}"
